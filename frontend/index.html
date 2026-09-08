@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BOT TimeLock Vault</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05060f;
+  --bg-2:#0a0b1e;
+  --panel:rgba(18,20,45,0.55);
+  --panel-solid:#101335;
+  --border:rgba(140,120,255,0.22);
+  --border-strong:rgba(0,245,255,0.5);
+  --text:#e8ecff;
+  --text-dim:#8b90c8;
+  --text-mute:#5c608a;
+  --cyan:#00f5ff;
+  --magenta:#ff2bd6;
+  --purple:#8b5cf6;
+  --blue:#4f7cff;
+  --lime:#adff2f;
+  --success:#22e59f;
+  --danger:#ff4d6d;
+  --warn:#ffb020;
+  --radius:16px;
+  --grad-1:linear-gradient(135deg,#00f5ff 0%,#8b5cf6 60%,#ff2bd6 100%);
+  --grad-2:linear-gradient(135deg,#ff2bd6,#8b5cf6);
+  --grad-3:linear-gradient(135deg,#00f5ff,#4f7cff);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh;line-height:1.55;overflow-x:hidden}
+a{color:var(--cyan);text-decoration:none}
+button{font-family:inherit}
+
+/* ══════════════ Ambient neon background ══════════════ */
+.bg-fx{position:fixed;inset:0;z-index:-2;background:
+  radial-gradient(1200px 600px at 8% -10%,rgba(139,92,246,0.28),transparent 60%),
+  radial-gradient(900px 500px at 100% 20%,rgba(0,245,255,0.22),transparent 60%),
+  radial-gradient(700px 500px at 50% 110%,rgba(255,43,214,0.18),transparent 60%),
+  linear-gradient(180deg,#05060f 0%,#08091a 100%);
+}
+.bg-grid{position:fixed;inset:0;z-index:-1;background-image:
+  linear-gradient(rgba(140,120,255,0.06) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(140,120,255,0.06) 1px,transparent 1px);
+  background-size:44px 44px;
+  mask-image:radial-gradient(ellipse at center,#000 30%,transparent 80%);
+  -webkit-mask-image:radial-gradient(ellipse at center,#000 30%,transparent 80%);
+  pointer-events:none;
+}
+.blob{position:fixed;border-radius:50%;filter:blur(80px);opacity:.5;z-index:-1;pointer-events:none;animation:drift 22s ease-in-out infinite}
+.blob.b1{width:520px;height:520px;background:radial-gradient(circle,#8b5cf6,transparent 70%);top:-120px;left:-140px;animation-delay:0s}
+.blob.b2{width:480px;height:480px;background:radial-gradient(circle,#00f5ff,transparent 70%);top:30%;right:-160px;animation-delay:-8s}
+.blob.b3{width:420px;height:420px;background:radial-gradient(circle,#ff2bd6,transparent 70%);bottom:-140px;left:35%;animation-delay:-14s}
+@keyframes drift{
+  0%,100%{transform:translate(0,0) scale(1)}
+  33%{transform:translate(40px,-30px) scale(1.05)}
+  66%{transform:translate(-30px,40px) scale(.95)}
+}
+
+/* ══════════════ Top bar ══════════════ */
+.topbar{position:sticky;top:0;z-index:50;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(16px);background:rgba(5,6,15,0.6);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:12px;font-family:'Orbitron',sans-serif;font-weight:800;font-size:1.05rem;letter-spacing:.08em}
+.brand-mark{width:38px;height:38px;border-radius:11px;background:var(--grad-1);display:flex;align-items:center;justify-content:center;font-size:1.15rem;box-shadow:0 0 24px rgba(139,92,246,0.5),inset 0 0 12px rgba(255,255,255,0.15);color:#fff}
+.brand-name span{background:var(--grad-1);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.top-actions{display:flex;align-items:center;gap:14px}
+.chain-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:rgba(0,245,255,0.08);border:1px solid rgba(0,245,255,0.25);font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--cyan)}
+.chain-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 12px var(--cyan);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 22px;border:none;border-radius:12px;font-size:.9rem;font-weight:600;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;position:relative;overflow:hidden}
+.btn-primary{background:var(--grad-1);color:#fff;box-shadow:0 0 0 rgba(139,92,246,0);border:1px solid rgba(255,255,255,0.14)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(139,92,246,0.5),0 0 24px rgba(0,245,255,0.35)}
+.btn-outline{background:rgba(255,255,255,0.03);color:var(--text);border:1px solid var(--border)}
+.btn-outline:hover{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 20px rgba(0,245,255,0.25)}
+.btn-ghost{background:transparent;color:var(--text-dim);border:1px solid transparent}
+.btn-ghost:hover{color:var(--text);background:rgba(255,255,255,0.04)}
+.btn-success{background:linear-gradient(135deg,#22e59f,#10b981);color:#062015;border:1px solid rgba(255,255,255,0.14);font-weight:700}
+.btn-success:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(34,229,159,0.4)}
+.btn-danger{background:linear-gradient(135deg,#ff4d6d,#c81d5b);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none;filter:grayscale(.3)}
+
+/* ══════════════ Layout ══════════════ */
+.stage{max-width:1320px;margin:0 auto;padding:28px 32px 60px}
+
+/* Hero */
+.hero{display:grid;grid-template-columns:1.15fr .85fr;gap:32px;align-items:center;padding:24px 0 40px}
+.hero-copy .eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;background:rgba(255,43,214,0.09);border:1px solid rgba(255,43,214,0.3);color:#ff8be2;font-family:'JetBrains Mono',monospace;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;margin-bottom:20px}
+.hero-copy h1{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(2.2rem,4.6vw,3.6rem);line-height:1.05;letter-spacing:-0.01em;margin-bottom:16px}
+.hero-copy h1 .glow{background:var(--grad-1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 22px rgba(0,245,255,0.25))}
+.hero-copy .sub{color:var(--text-dim);font-size:1.05rem;max-width:520px;margin-bottom:28px}
+.hero-metrics{display:flex;gap:18px;flex-wrap:wrap}
+.metric{padding:14px 20px;border-radius:14px;background:var(--panel);border:1px solid var(--border);backdrop-filter:blur(14px);min-width:150px}
+.metric .m-label{font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-mute)}
+.metric .m-value{font-family:'Orbitron',sans-serif;font-size:1.5rem;font-weight:800;margin-top:4px;background:var(--grad-1);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+
+/* Animated SVG vault */
+.vault-wrap{display:flex;align-items:center;justify-content:center;position:relative}
+.vault-svg{width:min(440px,92%);height:auto;filter:drop-shadow(0 0 40px rgba(139,92,246,0.35)) drop-shadow(0 0 18px rgba(0,245,255,0.25))}
+.vault-ring{transform-origin:center;animation:spin 20s linear infinite}
+.vault-ring-slow{transform-origin:center;animation:spin-r 40s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes spin-r{to{transform:rotate(-360deg)}}
+.vault-scan{transform-origin:center;animation:spin 6s linear infinite}
+.vault-pulse{animation:pulse-o 2.4s ease-in-out infinite}
+@keyframes pulse-o{0%,100%{opacity:.35}50%{opacity:1}}
+.vault-tick{animation:tick 1s steps(60,end) infinite}
+@keyframes tick{to{transform:rotate(360deg)}}
+
+/* ══════════════ Grid panels ══════════════ */
+.panels{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:24px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);backdrop-filter:blur(14px);padding:22px;position:relative;overflow:hidden}
+.panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),var(--magenta),transparent);opacity:.6}
+.panel-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:10px}
+.panel-title h2{font-family:'Orbitron',sans-serif;font-size:.95rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.panel-title h2 .ico{width:26px;height:26px;border-radius:8px;background:rgba(0,245,255,0.14);display:flex;align-items:center;justify-content:center;color:var(--cyan);font-size:.85rem}
+.panel-title .hint{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--text-mute);letter-spacing:.1em}
+
+/* Stat strip */
+.stat-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;position:relative;overflow:hidden;backdrop-filter:blur(14px)}
+.stat::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 60%,rgba(255,255,255,0.04));pointer-events:none}
+.stat .s-label{font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-mute)}
+.stat .s-value{font-family:'Orbitron',sans-serif;font-size:1.55rem;font-weight:800;margin-top:6px}
+.stat.c1 .s-value{color:var(--cyan);text-shadow:0 0 20px rgba(0,245,255,0.35)}
+.stat.c2 .s-value{color:var(--magenta);text-shadow:0 0 20px rgba(255,43,214,0.35)}
+.stat.c3 .s-value{background:var(--grad-1);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+
+/* Form */
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-family:'JetBrains Mono',monospace;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px}
+.form-group input,.form-group select{width:100%;padding:12px 14px;background:rgba(5,6,15,0.6);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:.98rem;font-family:'JetBrains Mono',monospace;transition:border-color .15s,box-shadow .15s}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,245,255,0.15)}
+.duration-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.chip{padding:7px 12px;border-radius:999px;background:rgba(255,255,255,0.03);border:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--text-dim);cursor:pointer;transition:.15s}
+.chip:hover{border-color:var(--cyan);color:var(--cyan)}
+.chip.active{background:rgba(0,245,255,0.12);border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 14px rgba(0,245,255,0.25)}
+
+.deposit-cta{margin-top:6px}
+.deposit-cta .btn{width:100%;padding:14px;font-size:1rem;letter-spacing:.06em}
+
+/* Deposit items */
+.deposit-item{background:rgba(5,6,15,0.55);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;display:flex;flex-wrap:wrap;align-items:center;gap:14px;justify-content:space-between;position:relative;overflow:hidden;transition:.2s}
+.deposit-item:hover{border-color:rgba(0,245,255,0.35);transform:translateY(-1px)}
+.deposit-item .glow-bar{position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--grad-1)}
+.deposit-info{flex:1;min-width:200px;padding-left:6px}
+.deposit-info .amount{font-family:'Orbitron',sans-serif;font-size:1.15rem;font-weight:800;background:var(--grad-3);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.deposit-info .meta{color:var(--text-mute);font-family:'JetBrains Mono',monospace;font-size:.76rem;margin-top:4px}
+.countdown{font-family:'JetBrains Mono',monospace;font-size:.85rem;padding:8px 14px;border-radius:8px;font-weight:600;letter-spacing:.06em}
+.countdown.locked{background:rgba(255,77,109,0.12);color:#ff8398;border:1px solid rgba(255,77,109,0.35)}
+.countdown.unlocked{background:rgba(34,229,159,0.12);color:#66f2c4;border:1px solid rgba(34,229,159,0.35);box-shadow:0 0 14px rgba(34,229,159,0.2)}
+.countdown.withdrawn{background:rgba(140,148,178,0.08);color:var(--text-mute);border:1px solid rgba(140,148,178,0.2)}
+
+/* Tx history */
+.tx-item{display:flex;gap:12px;padding:12px 4px;border-bottom:1px solid rgba(140,120,255,0.1);font-size:.88rem;align-items:center}
+.tx-item:last-child{border-bottom:none}
+.tx-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+.tx-icon.deposit-icon{background:rgba(0,245,255,0.12);color:var(--cyan);border:1px solid rgba(0,245,255,0.3)}
+.tx-icon.withdraw-icon{background:rgba(34,229,159,0.12);color:#66f2c4;border:1px solid rgba(34,229,159,0.3)}
+.tx-details{flex:1;min-width:0}
+.tx-details .tx-type{font-weight:600;font-family:'JetBrains Mono',monospace;font-size:.85rem}
+.tx-details .tx-meta{color:var(--text-mute);font-family:'JetBrains Mono',monospace;font-size:.72rem;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Empty */
+.empty{padding:36px 20px;text-align:center;color:var(--text-mute);font-family:'JetBrains Mono',monospace;font-size:.82rem;letter-spacing:.06em}
+.empty .ei{display:block;font-size:2rem;margin-bottom:8px;opacity:.4}
+
+/* Toasts */
+.toast-container{position:fixed;top:80px;right:20px;z-index:1000;display:flex;flex-direction:column;gap:10px}
+.toast{padding:13px 18px;border-radius:12px;font-size:.88rem;animation:slideIn .35s cubic-bezier(.2,.9,.3,1.3);max-width:340px;backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.14);font-weight:500}
+.toast-success{background:rgba(34,229,159,0.18);color:#a8f6d3;border-color:rgba(34,229,159,0.5);box-shadow:0 8px 30px rgba(34,229,159,0.25)}
+.toast-error{background:rgba(255,77,109,0.18);color:#ffbfcc;border-color:rgba(255,77,109,0.5);box-shadow:0 8px 30px rgba(255,77,109,0.25)}
+.toast-info{background:rgba(0,245,255,0.15);color:#a8f0ff;border-color:rgba(0,245,255,0.45);box-shadow:0 8px 30px rgba(0,245,255,0.25)}
+@keyframes slideIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* Spinner */
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin 0.65s linear infinite;vertical-align:middle}
+
+/* Wallet address badge */
+.addr-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:rgba(0,245,255,0.08);border:1px solid rgba(0,245,255,0.28);font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--cyan)}
+
+/* Footer */
+.footer{margin-top:40px;padding:20px 32px;text-align:center;color:var(--text-mute);font-family:'JetBrains Mono',monospace;font-size:.72rem;letter-spacing:.1em;border-top:1px solid var(--border)}
+
+/* Responsive */
+@media(max-width:960px){
+  .hero{grid-template-columns:1fr;gap:24px;padding:12px 0 28px;text-align:left}
+  .vault-wrap{order:-1}
+  .panels{grid-template-columns:1fr}
+  .stat-strip{grid-template-columns:1fr 1fr}
+  .stat-strip .stat.c3{grid-column:1 / -1}
+  .topbar{padding:14px 18px}
+  .stage{padding:20px 18px 40px}
+}
+@media(max-width:520px){
+  .hero-copy h1{font-size:2rem}
+  .metric{min-width:130px}
+  .brand-name{display:none}
+  .chain-pill{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- Ambient background -->
+<div class="bg-fx"></div>
+<div class="bg-grid"></div>
+<div class="blob b1"></div>
+<div class="blob b2"></div>
+<div class="blob b3"></div>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">⏱</div>
+    <div class="brand-name">BOT<span>·TIMELOCK</span></div>
+  </div>
+  <div class="top-actions">
+    <div class="chain-pill"><span class="dot"></span>BOT CHAIN TESTNET</div>
+    <button class="btn btn-primary" id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
+  </div>
+</div>
+
+<div class="stage">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-copy">
+      <span class="eyebrow">◈ TIMELOCK · SELF-CUSTODY · ON-CHAIN</span>
+      <h1>Lock it now.<br><span class="glow">Unlock on time.</span></h1>
+      <p class="sub">Deposit BOT into a smart contract that enforces the unlock date you set — no custodian, no admin key, no early exit. Pure code, pure certainty.</p>
+      <div class="hero-metrics">
+        <div class="metric">
+          <div class="m-label">Wallet</div>
+          <div class="m-value" id="walletAddr">Not linked</div>
+        </div>
+        <div class="metric">
+          <div class="m-label">Your Locked</div>
+          <div class="m-value" id="heroLocked">— BOT</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Animated SVG vault/clock hero -->
+    <div class="vault-wrap">
+      <svg class="vault-svg" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="grad-ring" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#00f5ff"/>
+            <stop offset="50%" stop-color="#8b5cf6"/>
+            <stop offset="100%" stop-color="#ff2bd6"/>
+          </linearGradient>
+          <linearGradient id="grad-arc" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#00f5ff" stop-opacity="0"/>
+            <stop offset="100%" stop-color="#00f5ff"/>
+          </linearGradient>
+          <radialGradient id="grad-core" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0%" stop-color="#1a1d4a"/>
+            <stop offset="60%" stop-color="#0a0b1e"/>
+            <stop offset="100%" stop-color="#05060f"/>
+          </radialGradient>
+          <linearGradient id="grad-lock" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#00f5ff"/>
+            <stop offset="100%" stop-color="#8b5cf6"/>
+          </linearGradient>
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+
+        <!-- Outer rotating gradient ring -->
+        <g class="vault-ring">
+          <circle cx="200" cy="200" r="180" fill="none" stroke="url(#grad-ring)" stroke-width="2" opacity="0.4"/>
+          <circle cx="200" cy="200" r="180" fill="none" stroke="url(#grad-ring)" stroke-width="4" stroke-dasharray="6 18" opacity="0.85"/>
+        </g>
+
+        <!-- Slow reverse ring -->
+        <g class="vault-ring-slow">
+          <circle cx="200" cy="200" r="160" fill="none" stroke="#8b5cf6" stroke-width="1" stroke-dasharray="2 8" opacity="0.5"/>
+        </g>
+
+        <!-- Tick marks -->
+        <g opacity="0.5">
+          <g id="tick-group"></g>
+        </g>
+
+        <!-- Progress arc (static, shows near-full) -->
+        <circle cx="200" cy="200" r="140" fill="none" stroke="#1a1d4a" stroke-width="6"/>
+        <circle cx="200" cy="200" r="140" fill="none" stroke="url(#grad-arc)" stroke-width="6"
+                stroke-linecap="round" stroke-dasharray="660 220" transform="rotate(-90 200 200)" filter="url(#glow)"/>
+
+        <!-- Scanner sweep -->
+        <g class="vault-scan">
+          <line x1="200" y1="200" x2="200" y2="60" stroke="url(#grad-arc)" stroke-width="2" opacity="0.7"/>
+          <circle cx="200" cy="60" r="4" fill="#00f5ff" filter="url(#glow)"/>
+        </g>
+
+        <!-- Inner core -->
+        <circle cx="200" cy="200" r="115" fill="url(#grad-core)" stroke="url(#grad-ring)" stroke-width="1.5"/>
+        <circle cx="200" cy="200" r="115" fill="none" stroke="#00f5ff" stroke-width="1" opacity="0.15" class="vault-pulse"/>
+
+        <!-- Clock ticker (60-step) -->
+        <g class="vault-tick">
+          <line x1="200" y1="200" x2="200" y2="120" stroke="#ff2bd6" stroke-width="2" stroke-linecap="round" opacity="0.85" filter="url(#glow)"/>
+          <circle cx="200" cy="120" r="3" fill="#ff2bd6" filter="url(#glow)"/>
+        </g>
+
+        <!-- Padlock icon -->
+        <g transform="translate(200 200)" filter="url(#glow)">
+          <!-- Shackle -->
+          <path d="M -22 -18 A 22 22 0 0 1 22 -18 L 22 0 L 14 0 L 14 -18 A 14 14 0 0 0 -14 -18 L -14 0 L -22 0 Z"
+                fill="url(#grad-lock)" opacity="0.95"/>
+          <!-- Body -->
+          <rect x="-32" y="-4" width="64" height="52" rx="10" fill="url(#grad-lock)" opacity="0.95"/>
+          <!-- Keyhole -->
+          <circle cx="0" cy="18" r="5" fill="#05060f"/>
+          <rect x="-2" y="18" width="4" height="14" fill="#05060f"/>
+        </g>
+
+        <!-- Center label -->
+        <text x="200" y="290" text-anchor="middle" fill="#8b90c8" font-family="JetBrains Mono, monospace" font-size="10" letter-spacing="3">VAULT · SECURE</text>
+
+        <!-- Corner status dots -->
+        <circle cx="60" cy="60" r="4" fill="#22e59f" filter="url(#glow)"><animate attributeName="opacity" values="1;.3;1" dur="1.8s" repeatCount="indefinite"/></circle>
+        <circle cx="340" cy="60" r="4" fill="#ff2bd6" filter="url(#glow)"><animate attributeName="opacity" values="1;.3;1" dur="2.4s" repeatCount="indefinite"/></circle>
+        <circle cx="60" cy="340" r="4" fill="#00f5ff" filter="url(#glow)"><animate attributeName="opacity" values="1;.3;1" dur="2.1s" repeatCount="indefinite"/></circle>
+        <circle cx="340" cy="340" r="4" fill="#8b5cf6" filter="url(#glow)"><animate attributeName="opacity" values="1;.3;1" dur="1.5s" repeatCount="indefinite"/></circle>
+      </svg>
+    </div>
+  </section>
+
+  <!-- Stat strip -->
+  <div class="stat-strip">
+    <div class="stat c1">
+      <div class="s-label">Your Deposits</div>
+      <div class="s-value" id="statCount">—</div>
+    </div>
+    <div class="stat c2">
+      <div class="s-label">Your Locked</div>
+      <div class="s-value" id="statLocked">—</div>
+    </div>
+    <div class="stat c3">
+      <div class="s-label">Total Locked (Contract)</div>
+      <div class="s-value" id="statTotal">—</div>
+    </div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="panels">
+
+    <!-- New Deposit -->
+    <div class="panel">
+      <div class="panel-title">
+        <h2><span class="ico">＋</span> New Deposit</h2>
+        <span class="hint">DEPOSIT.SEND</span>
+      </div>
+
+      <div class="form-group">
+        <label>Amount (BOT)</label>
+        <input type="number" id="depositAmount" placeholder="0.00" step="0.01" min="0">
+      </div>
+
+      <div class="form-group">
+        <label>Lock Duration</label>
+        <select id="lockDuration">
+          <option value="60">1 Minute</option>
+          <option value="300">5 Minutes</option>
+          <option value="3600" selected>1 Hour</option>
+          <option value="86400">1 Day</option>
+          <option value="604800">1 Week</option>
+          <option value="2592000">30 Days</option>
+          <option value="custom">Custom Timestamp</option>
+        </select>
+        <div class="duration-chips" id="durationChips">
+          <span class="chip" data-dur="60">1m</span>
+          <span class="chip" data-dur="300">5m</span>
+          <span class="chip active" data-dur="3600">1h</span>
+          <span class="chip" data-dur="86400">1d</span>
+          <span class="chip" data-dur="604800">1w</span>
+          <span class="chip" data-dur="2592000">30d</span>
+        </div>
+      </div>
+
+      <div class="form-group" id="customTimeGroup" style="display:none">
+        <label>Custom Unlock Time (Local)</label>
+        <input type="datetime-local" id="customTime">
+      </div>
+
+      <div class="deposit-cta">
+        <button class="btn btn-primary" id="depositBtn" onclick="makeDeposit()" disabled>⚡ Deposit BOT</button>
+      </div>
+    </div>
+
+    <!-- Right column: deposits + tx history stacked -->
+    <div style="display:flex;flex-direction:column;gap:24px">
+
+      <div class="panel">
+        <div class="panel-title">
+          <h2><span class="ico">▤</span> Your Vaults</h2>
+          <span class="hint">LIVE.STATE</span>
+        </div>
+        <div id="depositsList">
+          <div class="empty"><span class="ei">◐</span>Connect wallet to view vaults</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">
+          <h2><span class="ico">↯</span> Transaction Log</h2>
+          <span class="hint">HISTORY.STREAM</span>
+        </div>
+        <div id="txHistory">
+          <div class="empty"><span class="ei">◇</span>No transactions yet</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <div class="footer">
+    ⏱ BOT · TIMELOCK · WALLET  //  SELF-CUSTODY VAULTS ON BOT CHAIN
+  </div>
+
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.9.0/ethers.umd.min.js"></script>
+<script>
+// ══════════════════════════ Config ══════════════════════════
+const CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+const ABI = [
+  "function deposit(uint256 unlockTime) external payable",
+  "function withdraw(uint256 depositIndex) external",
+  "function emergencyWithdraw(address[] calldata users) external",
+  "function pause() external",
+  "function unpause() external",
+  "function getDeposit(address user, uint256 index) external view returns (uint256 amount, uint256 unlockTime, bool withdrawn)",
+  "function getDepositCount(address user) external view returns (uint256)",
+  "function getTotalLocked() external view returns (uint256)",
+  "event Deposited(address indexed user, uint256 amount, uint256 unlockTime, uint256 index)",
+  "event Withdrawn(address indexed user, uint256 amount, uint256 index)",
+  "event EmergencyWithdrawn(address indexed user, uint256 amount, uint256 depositCount)"
+];
+
+// Targeting BOT Chain Testnet for now. Mainnet values to swap in later:
+//   chainId: "0x2A5" (677), chainName: "BOT Chain", rpcUrls: ["https://rpc.botchain.ai"],
+//   blockExplorerUrls: ["https://scan.botchain.ai"]
+const BOT_CHAIN = {
+  chainId: "0x3C8",
+  chainName: "BOT Chain Testnet",
+  nativeCurrency: { name: "BOT", symbol: "BOT", decimals: 18 },
+  rpcUrls: ["https://rpc.bohr.life"],
+  blockExplorerUrls: ["https://scan.bohr.life/"]
+};
+
+const CONTRACT_DEPLOYED = CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000";
+
+// ══════════════════════════ State ══════════════════════════
+let connected = false;
+let userAddress = null;
+let provider = null;
+let signer = null;
+let contract = null;
+let userDeposits = [];
+let txHistory = [];
+let countdownInterval = null;
+
+// ══════════════════════════ Elements ══════════════════════════
+const connectBtn = document.getElementById("connectBtn");
+const depositBtn = document.getElementById("depositBtn");
+const lockDuration = document.getElementById("lockDuration");
+const customTimeGroup = document.getElementById("customTimeGroup");
+const durationChips = document.getElementById("durationChips");
+
+// SVG tick marks
+(function buildTicks(){
+  const g = document.getElementById("tick-group");
+  if (!g) return;
+  const svgNS = "http://www.w3.org/2000/svg";
+  for (let i = 0; i < 60; i++) {
+    const line = document.createElementNS(svgNS,"line");
+    const isMajor = i % 5 === 0;
+    line.setAttribute("x1","200");
+    line.setAttribute("y1", isMajor ? 30 : 34);
+    line.setAttribute("x2","200");
+    line.setAttribute("y2","42");
+    line.setAttribute("stroke", isMajor ? "#8b5cf6" : "#4c4f7a");
+    line.setAttribute("stroke-width", isMajor ? "2" : "1");
+    line.setAttribute("transform", `rotate(${i * 6} 200 200)`);
+    g.appendChild(line);
+  }
+})();
+
+// Duration select ↔ chips sync
+lockDuration.addEventListener("change", () => {
+  customTimeGroup.style.display = lockDuration.value === "custom" ? "block" : "none";
+  document.querySelectorAll("#durationChips .chip").forEach(c => {
+    c.classList.toggle("active", c.dataset.dur === lockDuration.value);
+  });
+});
+durationChips.addEventListener("click", (e) => {
+  const chip = e.target.closest(".chip");
+  if (!chip) return;
+  lockDuration.value = chip.dataset.dur;
+  lockDuration.dispatchEvent(new Event("change"));
+});
+
+// ══════════════════════════ Wallet ══════════════════════════
+async function connectWallet() {
+  if (connected) { disconnect(); return; }
+
+  if (!window.ethereum) { toast("MetaMask not found!", "error"); return; }
+
+  try {
+    try {
+      await window.ethereum.request({ method: "wallet_addEthereumChain", params: [BOT_CHAIN] });
+    } catch (e) {}
+    try {
+      await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: BOT_CHAIN.chainId }] });
+    } catch (e) {}
+
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    provider = new ethers.BrowserProvider(window.ethereum);
+    signer = await provider.getSigner();
+    userAddress = accounts[0];
+    contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+    connected = true;
+    connectBtn.textContent = "Disconnect";
+    document.getElementById("walletAddr").textContent = shortAddr(userAddress);
+    depositBtn.disabled = !CONTRACT_DEPLOYED;
+    await loadChainData();
+    if (!CONTRACT_DEPLOYED) {
+      toast("Wallet connected! Contract not deployed yet.", "info");
+    } else {
+      toast("Wallet connected!", "success");
+    }
+  } catch (e) {
+    toast("Connection failed: " + e.message, "error");
+  }
+
+  startCountdowns();
+}
+
+function disconnect() {
+  connected = false;
+  userAddress = null;
+  provider = null;
+  signer = null;
+  contract = null;
+  connectBtn.textContent = "Connect Wallet";
+  document.getElementById("walletAddr").textContent = "Not linked";
+  document.getElementById("heroLocked").textContent = "— BOT";
+  depositBtn.disabled = true;
+  userDeposits = [];
+  txHistory = [];
+  if (countdownInterval) clearInterval(countdownInterval);
+  updateStats();
+  renderDeposits();
+  renderTxHistory();
+}
+
+// ══════════════════════════ Deposit ══════════════════════════
+async function makeDeposit() {
+  if (!connected || !contract) { toast("Connect your wallet first", "error"); return; }
+  if (!CONTRACT_DEPLOYED) { toast("Contract not deployed yet", "error"); return; }
+
+  const amountStr = document.getElementById("depositAmount").value;
+  if (!amountStr || parseFloat(amountStr) <= 0) { toast("Enter a valid amount", "error"); return; }
+
+  let unlockTime;
+  if (lockDuration.value === "custom") {
+    const dt = document.getElementById("customTime").value;
+    if (!dt) { toast("Select a custom time", "error"); return; }
+    unlockTime = Math.floor(new Date(dt).getTime() / 1000);
+    if (unlockTime <= Math.floor(Date.now() / 1000)) { toast("Unlock time must be in the future", "error"); return; }
+  } else {
+    unlockTime = Math.floor(Date.now() / 1000) + parseInt(lockDuration.value);
+  }
+
+  depositBtn.disabled = true;
+  depositBtn.innerHTML = '<span class="spinner"></span> Depositing...';
+
+  try {
+    const amount = ethers.parseEther(amountStr);
+    const tx = await contract.deposit(unlockTime, { value: amount });
+    toast("Transaction sent...", "info");
+    await tx.wait();
+    toast("Deposited " + amountStr + " BOT!", "success");
+    txHistory.unshift({ type: "deposit", amount: amountStr, time: new Date(), index: userDeposits.length, hash: tx.hash });
+    await loadChainData();
+  } catch (e) {
+    toast("Deposit failed: " + (e.reason || e.message), "error");
+  }
+
+  depositBtn.disabled = false;
+  depositBtn.innerHTML = "⚡ Deposit BOT";
+  document.getElementById("depositAmount").value = "";
+  updateStats();
+  renderDeposits();
+  renderTxHistory();
+}
+
+// ══════════════════════════ Withdraw ══════════════════════════
+async function doWithdraw(index) {
+  if (!connected || !contract) { toast("Connect your wallet first", "error"); return; }
+
+  const btn = document.querySelector(`[data-withdraw="${index}"]`);
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>'; }
+
+  try {
+    const tx = await contract.withdraw(index);
+    toast("Withdrawing...", "info");
+    await tx.wait();
+    toast("Withdrawal complete!", "success");
+    const dep = userDeposits[index];
+    const amt = dep ? ethers.formatEther(dep.amount) : "";
+    txHistory.unshift({ type: "withdraw", amount: amt, time: new Date(), index, hash: tx.hash });
+    await loadChainData();
+  } catch (e) {
+    toast("Withdraw failed: " + (e.reason || e.message), "error");
+  }
+
+  updateStats();
+  renderDeposits();
+  renderTxHistory();
+}
+
+// ══════════════════════════ Chain Data ══════════════════════════
+async function loadChainData() {
+  if (!contract || !connected) return;
+  if (!CONTRACT_DEPLOYED) {
+    userDeposits = [];
+    updateStats();
+    renderDeposits();
+    return;
+  }
+  try {
+    const count = await contract.getDepositCount(userAddress);
+    userDeposits = [];
+    for (let i = 0; i < Number(count); i++) {
+      const d = await contract.getDeposit(userAddress, i);
+      userDeposits.push({ amount: d.amount, unlockTime: d.unlockTime, withdrawn: d.withdrawn });
+    }
+    const totalLocked = await contract.getTotalLocked();
+    document.getElementById("statTotal").textContent = ethers.formatEther(totalLocked) + " BOT";
+    updateStats();
+    renderDeposits();
+  } catch (e) {
+    console.error(e);
+    toast("Failed to read contract data: " + (e.reason || e.message), "error");
+  }
+}
+
+// ══════════════════════════ Render ══════════════════════════
+function updateStats() {
+  if (!connected || !CONTRACT_DEPLOYED) {
+    document.getElementById("statCount").textContent = "—";
+    document.getElementById("statLocked").textContent = "—";
+    document.getElementById("statTotal").textContent = "—";
+    document.getElementById("heroLocked").textContent = connected ? "— BOT" : "— BOT";
+    return;
+  }
+  const active = userDeposits.filter(d => !d.withdrawn);
+  document.getElementById("statCount").textContent = userDeposits.length;
+  const locked = active.reduce((s, d) => s + d.amount, 0n);
+  const lockedStr = ethers.formatEther(locked) + " BOT";
+  document.getElementById("statLocked").textContent = lockedStr;
+  document.getElementById("heroLocked").textContent = lockedStr;
+}
+
+function renderDeposits() {
+  const el = document.getElementById("depositsList");
+
+  if (!connected) {
+    el.innerHTML = '<div class="empty"><span class="ei">◐</span>Connect wallet to view vaults</div>';
+    return;
+  }
+  if (!CONTRACT_DEPLOYED) {
+    el.innerHTML = '<div class="empty"><span class="ei">⌬</span>Deploy contract to see live data</div>';
+    return;
+  }
+  if (userDeposits.length === 0) {
+    el.innerHTML = '<div class="empty"><span class="ei">◇</span>No vaults yet — lock your first BOT</div>';
+    return;
+  }
+
+  el.innerHTML = userDeposits.map((d, i) => {
+    const amount = ethers.formatEther(d.amount);
+    const unlockDate = new Date(Number(d.unlockTime) * 1000);
+    const now = Math.floor(Date.now() / 1000);
+    const isUnlocked = now >= Number(d.unlockTime);
+
+    let statusClass, statusText;
+    if (d.withdrawn) { statusClass = "withdrawn"; statusText = "Withdrawn"; }
+    else if (isUnlocked) { statusClass = "unlocked"; statusText = "◉ Unlocked"; }
+    else { statusClass = "locked"; statusText = "◌ " + formatCountdown(Number(d.unlockTime) - now); }
+
+    const withdrawBtn = (!d.withdrawn && isUnlocked)
+      ? `<button class="btn btn-success" data-withdraw="${i}" onclick="doWithdraw(${i})" style="font-size:.82rem;padding:8px 16px">Withdraw</button>`
+      : '';
+
+    return `<div class="deposit-item">
+      <div class="glow-bar"></div>
+      <div class="deposit-info">
+        <div class="amount">${amount} BOT</div>
+        <div class="meta">VAULT #${i} · UNLOCKS ${unlockDate.toLocaleString()}</div>
+      </div>
+      <span class="countdown ${statusClass}" data-countdown="${d.withdrawn ? '' : d.unlockTime}">${statusText}</span>
+      ${withdrawBtn}
+    </div>`;
+  }).join('');
+}
+
+function renderTxHistory() {
+  const el = document.getElementById("txHistory");
+  if (txHistory.length === 0) {
+    el.innerHTML = '<div class="empty"><span class="ei">◇</span>No transactions yet</div>';
+    return;
+  }
+  el.innerHTML = txHistory.map(tx => {
+    const icon = tx.type === "deposit" ? "deposit-icon" : "withdraw-icon";
+    const symbol = tx.type === "deposit" ? "↓" : "↑";
+    const label = tx.type === "deposit" ? "DEPOSIT" : "WITHDRAW";
+    return `<div class="tx-item">
+      <div class="tx-icon ${icon}">${symbol}</div>
+      <div class="tx-details">
+        <div class="tx-type">${label} · ${tx.amount} BOT · #${tx.index}</div>
+        <div class="tx-meta">${tx.time.toLocaleString()} · ${shortAddr(tx.hash)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════ Countdown ══════════════════════════
+function startCountdowns() {
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownInterval = setInterval(() => {
+    if (!connected) return;
+    renderDeposits();
+  }, 1000);
+}
+
+function formatCountdown(seconds) {
+  if (seconds <= 0) return "Unlocked";
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (d > 0) return `${d}d ${h}h ${m}m ${s}s`;
+  if (h > 0) return `${h}h ${m}m ${s}s`;
+  return `${m}m ${s}s`;
+}
+
+// ══════════════════════════ Helpers ══════════════════════════
+function shortAddr(a) { return a ? a.slice(0, 6) + "..." + a.slice(-4) : ""; }
+
+function toast(msg, type) {
+  const el = document.createElement("div");
+  el.className = "toast toast-" + type;
+  el.textContent = msg;
+  document.getElementById("toasts").appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+</script>
+</body>
+</html>
