@@ -437,7 +437,7 @@ button{font-family:inherit}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.9.0/ethers.umd.min.js"></script>
 <script>
 // ══════════════════════════ Config ══════════════════════════
-const CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000";
+const CONTRACT_ADDRESS = "0x7fD1761D9607E34A35561990597C8f13DDAd2938";
 
 const ABI = [
   "function deposit(uint256 unlockTime) external payable",
@@ -457,11 +457,11 @@ const ABI = [
 //   chainId: "0x2A5" (677), chainName: "BOT Chain", rpcUrls: ["https://rpc.botchain.ai"],
 //   blockExplorerUrls: ["https://scan.botchain.ai"]
 const BOT_CHAIN = {
-  chainId: "0x3C8",
-  chainName: "BOT Chain Testnet",
+  chainId: "0x2A5",
+  chainName: "BOT Chain",
   nativeCurrency: { name: "BOT", symbol: "BOT", decimals: 18 },
-  rpcUrls: ["https://rpc.bohr.life"],
-  blockExplorerUrls: ["https://scan.bohr.life/"]
+  rpcUrls: ["https://rpc.botchain.ai"],
+  blockExplorerUrls: ["https://scan.botchain.ai"]
 };
 
 const CONTRACT_DEPLOYED = CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000";
